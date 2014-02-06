@@ -1,3 +1,3 @@
-FooCoin (FOO)
+TeaPartyCoin (TPC)
 
-Blah, blah, blah.
+Coin for patriots.

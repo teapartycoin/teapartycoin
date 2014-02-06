@@ -29,7 +29,7 @@ CTxMemPool mempool;
 unsigned int nTransactionsUpdated = 0;
 
 map<uint256, CBlockIndex*> mapBlockIndex;
-uint256 hashGenesisBlock("0xbf9385c680c3a7aec778b6dcf87dbfb105369d55143fc99ebe86f469cd53ddca");
+uint256 hashGenesisBlock("0x0df127dfaa710c0312188202a3c27390a84eb072f46f9e6537a5c953900fecc5");
 static CBigNum bnProofOfWorkLimit(~uint256(0) >> 20); // starting difficulty is 1 / 2^12
 CBlockIndex* pindexGenesisBlock = NULL;
 int nBestHeight = -1;
@@ -47,10 +47,10 @@ multimap<uint256, CBlock*> mapOrphanBlocksByPrev;
 map<uint256, CDataStream*> mapOrphanTransactions;
 map<uint256, map<uint256, CDataStream*> > mapOrphanTransactionsByPrev;
 
-// teapartycoinant stuff for coinbase transactions we create:
+// Constant stuff for coinbase transactions we create:
 CScript COINBASE_FLAGS;
 
-teapartycoin string strMessageMagic = "teapartycoin Signed Message:\n";
+const string strMessageMagic = "teapartycoin Signed Message:\n";
 
 double dHashesPerSec;
 int64 nHPSTimerStart;
@@ -95,7 +95,7 @@ bool static IsFromMe(CTransaction& tx)
 }
 
 // get the wallet transaction with the given hash (if it exists)
-bool static GetTransaction(teapartycoin uint256& hashTx, CWalletTx& wtx)
+bool static GetTransaction(const uint256& hashTx, CWalletTx& wtx)
 {
     BOOST_FOREACH(CWallet* pwallet, setpwalletRegistered)
         if (pwallet->GetTransaction(hashTx,wtx))
@@ -111,35 +111,35 @@ void static EraseFromWallets(uint256 hash)
 }
 
 // make sure all wallets know about the given transaction, in the given block
-void SyncWithWallets(teapartycoin CTransaction& tx, teapartycoin CBlock* pblock, bool fUpdate)
+void SyncWithWallets(const CTransaction& tx, const CBlock* pblock, bool fUpdate)
 {
     BOOST_FOREACH(CWallet* pwallet, setpwalletRegistered)
         pwallet->AddToWalletIfInvolvingMe(tx, pblock, fUpdate);
 }
 
 // notify wallets about a new best chain
-void static SetBestChain(teapartycoin CBlockLocator& loc)
+void static SetBestChain(const CBlockLocator& loc)
 {
     BOOST_FOREACH(CWallet* pwallet, setpwalletRegistered)
         pwallet->SetBestChain(loc);
 }
 
 // notify wallets about an updated transaction
-void static UpdatedTransaction(teapartycoin uint256& hashTx)
+void static UpdatedTransaction(const uint256& hashTx)
 {
     BOOST_FOREACH(CWallet* pwallet, setpwalletRegistered)
         pwallet->UpdatedTransaction(hashTx);
 }
 
 // dump all wallets
-void static PrintWallets(teapartycoin CBlock& block)
+void static PrintWallets(const CBlock& block)
 {
     BOOST_FOREACH(CWallet* pwallet, setpwalletRegistered)
         pwallet->PrintWallet(block);
 }
 
 // notify wallets about an incoming inventory (for request counts)
-void static Inventory(teapartycoin uint256& hash)
+void static Inventory(const uint256& hash)
 {
     BOOST_FOREACH(CWallet* pwallet, setpwalletRegistered)
         pwallet->Inventory(hash);
@@ -163,7 +163,7 @@ void static ResendWalletTransactions()
 // mapOrphanTransactions
 //
 
-bool AddOrphanTx(teapartycoin CDataStream& vMsg)
+bool AddOrphanTx(const CDataStream& vMsg)
 {
     CTransaction tx;
     CDataStream(vMsg) >> tx;
@@ -188,7 +188,7 @@ bool AddOrphanTx(teapartycoin CDataStream& vMsg)
     }
 
     mapOrphanTransactions[hash] = pvMsg;
-    BOOST_FOREACH(teapartycoin CTxIn& txin, tx.vin)
+    BOOST_FOREACH(const CTxIn& txin, tx.vin)
         mapOrphanTransactionsByPrev[txin.prevout.hash].insert(make_pair(hash, pvMsg));
 
     printf("stored orphan tx %s (mapsz %u)\n", hash.ToString().substr(0,10).c_str(),
@@ -200,10 +200,10 @@ void static EraseOrphanTx(uint256 hash)
 {
     if (!mapOrphanTransactions.count(hash))
         return;
-    teapartycoin CDataStream* pvMsg = mapOrphanTransactions[hash];
+    const CDataStream* pvMsg = mapOrphanTransactions[hash];
     CTransaction tx;
     CDataStream(*pvMsg) >> tx;
-    BOOST_FOREACH(teapartycoin CTxIn& txin, tx.vin)
+    BOOST_FOREACH(const CTxIn& txin, tx.vin)
     {
         mapOrphanTransactionsByPrev[txin.prevout.hash].erase(hash);
         if (mapOrphanTransactionsByPrev[txin.prevout.hash].empty())
@@ -268,12 +268,12 @@ bool CTransaction::ReadFromDisk(COutPoint prevout)
     return ReadFromDisk(txdb, prevout, txindex);
 }
 
-bool CTransaction::IsStandard() teapartycoin
+bool CTransaction::IsStandard() const
 {
     if (nVersion > CTransaction::CURRENT_VERSION)
         return false;
 
-    BOOST_FOREACH(teapartycoin CTxIn& txin, vin)
+    BOOST_FOREACH(const CTxIn& txin, vin)
     {
         // Biggest 'standard' txin is a 3-signature 3-of-3 CHECKMULTISIG
         // pay-to-script-hash, which is 3 ~80-byte signatures, 3
@@ -283,7 +283,7 @@ bool CTransaction::IsStandard() teapartycoin
         if (!txin.scriptSig.IsPushOnly())
             return false;
     }
-    BOOST_FOREACH(teapartycoin CTxOut& txout, vout)
+    BOOST_FOREACH(const CTxOut& txout, vout)
         if (!::IsStandard(txout.scriptPubKey))
             return false;
     return true;
@@ -300,19 +300,19 @@ bool CTransaction::IsStandard() teapartycoin
 // expensive-to-check-upon-redemption script like:
 //   DUP CHECKSIG DROP ... repeated 100 times... OP_1
 //
-bool CTransaction::AreInputsStandard(teapartycoin MapPrevTx& mapInputs) teapartycoin
+bool CTransaction::AreInputsStandard(const MapPrevTx& mapInputs) const
 {
     if (IsCoinBase())
         return true; // Coinbases don't use vin normally
 
     for (unsigned int i = 0; i < vin.size(); i++)
     {
-        teapartycoin CTxOut& prev = GetOutputFor(vin[i], mapInputs);
+        const CTxOut& prev = GetOutputFor(vin[i], mapInputs);
 
         vector<vector<unsigned char> > vSolutions;
         txnouttype whichType;
         // get the scriptPubKey corresponding to this input:
-        teapartycoin CScript& prevScript = prev.scriptPubKey;
+        const CScript& prevScript = prev.scriptPubKey;
         if (!Solver(prevScript, whichType, vSolutions))
             return false;
         int nArgsExpected = ScriptSigArgsExpected(whichType, vSolutions);
@@ -355,14 +355,14 @@ bool CTransaction::AreInputsStandard(teapartycoin MapPrevTx& mapInputs) teaparty
 }
 
 unsigned int
-CTransaction::GetLegacySigOpCount() teapartycoin
+CTransaction::GetLegacySigOpCount() const
 {
     unsigned int nSigOps = 0;
-    BOOST_FOREACH(teapartycoin CTxIn& txin, vin)
+    BOOST_FOREACH(const CTxIn& txin, vin)
     {
         nSigOps += txin.scriptSig.GetSigOpCount(false);
     }
-    BOOST_FOREACH(teapartycoin CTxOut& txout, vout)
+    BOOST_FOREACH(const CTxOut& txout, vout)
     {
         nSigOps += txout.scriptPubKey.GetSigOpCount(false);
     }
@@ -370,7 +370,7 @@ CTransaction::GetLegacySigOpCount() teapartycoin
 }
 
 
-int CMerkleTx::SetMerkleBranch(teapartycoin CBlock* pblock)
+int CMerkleTx::SetMerkleBranch(const CBlock* pblock)
 {
     if (fClient)
     {
@@ -427,7 +427,7 @@ int CMerkleTx::SetMerkleBranch(teapartycoin CBlock* pblock)
 
 
 
-bool CTransaction::CheckTransaction() teapartycoin
+bool CTransaction::CheckTransaction() const
 {
     // Basic checks that don't depend on any context
     if (vin.empty())
@@ -440,7 +440,7 @@ bool CTransaction::CheckTransaction() teapartycoin
 
     // Check for negative or overflow output values
     int64 nValueOut = 0;
-    BOOST_FOREACH(teapartycoin CTxOut& txout, vout)
+    BOOST_FOREACH(const CTxOut& txout, vout)
     {
         if (txout.nValue < 0)
             return DoS(100, error("CTransaction::CheckTransaction() : txout.nValue negative"));
@@ -453,7 +453,7 @@ bool CTransaction::CheckTransaction() teapartycoin
 
     // Check for duplicate inputs
     set<COutPoint> vInOutPoints;
-    BOOST_FOREACH(teapartycoin CTxIn& txin, vin)
+    BOOST_FOREACH(const CTxIn& txin, vin)
     {
         if (vInOutPoints.count(txin.prevout))
             return false;
@@ -467,7 +467,7 @@ bool CTransaction::CheckTransaction() teapartycoin
     }
     else
     {
-        BOOST_FOREACH(teapartycoin CTxIn& txin, vin)
+        BOOST_FOREACH(const CTxIn& txin, vin)
             if (txin.prevout.IsNull())
                 return DoS(10, error("CTransaction::CheckTransaction() : prevout is null"));
     }
@@ -624,7 +624,7 @@ bool CTransaction::AcceptToMemoryPool(CTxDB& txdb, bool fCheckInputs, bool* pfMi
     return mempool.accept(txdb, *this, fCheckInputs, pfMissingInputs);
 }
 
-bool CTxMemPool::addUnchecked(teapartycoin uint256& hash, CTransaction &tx)
+bool CTxMemPool::addUnchecked(const uint256& hash, CTransaction &tx)
 {
     // Add to memory pool without checking anything.  Don't call this directly,
     // call CTxMemPool::accept to properly check the transaction first.
@@ -646,7 +646,7 @@ bool CTxMemPool::remove(CTransaction &tx)
         uint256 hash = tx.GetHash();
         if (mapTx.count(hash))
         {
-            BOOST_FOREACH(teapartycoin CTxIn& txin, tx.vin)
+            BOOST_FOREACH(const CTxIn& txin, tx.vin)
                 mapNextTx.erase(txin.prevout);
             mapTx.erase(hash);
             nTransactionsUpdated++;
@@ -668,7 +668,7 @@ void CTxMemPool::queryHashes(std::vector<uint256>& vtxid)
 
 
 
-int CMerkleTx::GetDepthInMainChain(CBlockIndex* &pindexRet) teapartycoin
+int CMerkleTx::GetDepthInMainChain(CBlockIndex* &pindexRet) const
 {
     if (hashBlock == 0 || nIndex == -1)
         return 0;
@@ -694,7 +694,7 @@ int CMerkleTx::GetDepthInMainChain(CBlockIndex* &pindexRet) teapartycoin
 }
 
 
-int CMerkleTx::GetBlocksToMaturity() teapartycoin
+int CMerkleTx::GetBlocksToMaturity() const
 {
     if (!IsCoinBase())
         return 0;
@@ -750,7 +750,7 @@ bool CWalletTx::AcceptWalletTransaction()
     return AcceptWalletTransaction(txdb);
 }
 
-int CTxIndex::GetDepthInMainChain() teapartycoin
+int CTxIndex::GetDepthInMainChain() const
 {
     // Read block header
     CBlock block;
@@ -767,7 +767,7 @@ int CTxIndex::GetDepthInMainChain() teapartycoin
 }
 
 // Return transaction in tx, and if it was found inside a block, its hash is placed in hashBlock
-bool GetTransaction(teapartycoin uint256 &hash, CTransaction &tx, uint256 &hashBlock)
+bool GetTransaction(const uint256 &hash, CTransaction &tx, uint256 &hashBlock)
 {
     {
         LOCK(cs_main);
@@ -804,7 +804,7 @@ bool GetTransaction(teapartycoin uint256 &hash, CTransaction &tx, uint256 &hashB
 // CBlock and CBlockIndex
 //
 
-bool CBlock::ReadFromDisk(teapartycoin CBlockIndex* pindex, bool fReadTransactions)
+bool CBlock::ReadFromDisk(const CBlockIndex* pindex, bool fReadTransactions)
 {
     if (!fReadTransactions)
     {
@@ -818,7 +818,7 @@ bool CBlock::ReadFromDisk(teapartycoin CBlockIndex* pindex, bool fReadTransactio
     return true;
 }
 
-uint256 static GetOrphanRoot(teapartycoin CBlock* pblock)
+uint256 static GetOrphanRoot(const CBlock* pblock)
 {
     // Work back to the first block in the orphan chain
     while (mapOrphanBlocks.count(pblock->hashPrevBlock))
@@ -833,13 +833,13 @@ int64 static GetBlockValue(int nHeight, int64 nFees)
     return nSubsidy + nFees;
 }
 
-static teapartycoin int64 nTargetTimespan = 1 * 24 * 60 * 60; // teapartycoin: 1 days
-static teapartycoin int64 nTargetSpacing = 720; // teapartycoin: 12 minute blocks
-static teapartycoin int64 nInterval = nTargetTimespan / nTargetSpacing;
+static const int64 nTargetTimespan = 1 * 24 * 60 * 60; // teapartycoin: 1 days
+static const int64 nTargetSpacing = 720; // teapartycoin: 12 minute blocks
+static const int64 nInterval = nTargetTimespan / nTargetSpacing;
 
 // Thanks: Balthazar for suggesting the following fix
 // https://bitcointalk.org/index.php?topic=182430.msg1904506#msg1904506
-static teapartycoin int64 nReTargetHistoryFact = 4; // look at 4 times the retarget
+static const int64 nReTargetHistoryFact = 4; // look at 4 times the retarget
                                              // interval into the block history
 
 //
@@ -867,7 +867,7 @@ unsigned int ComputeMinWork(unsigned int nBase, int64 nTime)
     return bnResult.GetCompact();
 }
 
-unsigned int static GetNextWorkRequired(teapartycoin CBlockIndex* pindexLast, teapartycoin CBlock *pblock)
+unsigned int static GetNextWorkRequired(const CBlockIndex* pindexLast, const CBlock *pblock)
 {
     unsigned int nProofOfWorkLimit = bnProofOfWorkLimit.GetCompact();
 
@@ -888,7 +888,7 @@ unsigned int static GetNextWorkRequired(teapartycoin CBlockIndex* pindexLast, te
             else
             {
                 // Return the last non-special-min-difficulty-rules-block
-                teapartycoin CBlockIndex* pindex = pindexLast;
+                const CBlockIndex* pindex = pindexLast;
                 while (pindex->pprev && pindex->nHeight % nInterval != 0 && pindex->nBits == nProofOfWorkLimit)
                     pindex = pindex->pprev;
                 return pindex->nBits;
@@ -908,7 +908,7 @@ unsigned int static GetNextWorkRequired(teapartycoin CBlockIndex* pindexLast, te
     }
 
     // Go back by what we want to be nReTargetHistoryFact*nInterval blocks
-    teapartycoin CBlockIndex* pindexFirst = pindexLast;
+    const CBlockIndex* pindexFirst = pindexLast;
     for (int i = 0; pindexFirst && i < blockstogoback; i++)
         pindexFirst = pindexFirst->pprev;
     assert(pindexFirst);
@@ -1000,7 +1000,7 @@ void static InvalidChainFound(CBlockIndex* pindexNew)
         printf("InvalidChainFound: WARNING: Displayed transactions may not be correct!  You may need to upgrade, or other nodes may need to upgrade.\n");
 }
 
-void CBlock::UpdateTime(teapartycoin CBlockIndex* pindexPrev)
+void CBlock::UpdateTime(const CBlockIndex* pindexPrev)
 {
     nTime = max(pindexPrev->GetMedianTimePast()+1, GetAdjustedTime());
 
@@ -1024,7 +1024,7 @@ bool CTransaction::DisconnectInputs(CTxDB& txdb)
     // Relinquish previous transactions' spent pointers
     if (!IsCoinBase())
     {
-        BOOST_FOREACH(teapartycoin CTxIn& txin, vin)
+        BOOST_FOREACH(const CTxIn& txin, vin)
         {
             COutPoint prevout = txin.prevout;
 
@@ -1055,7 +1055,7 @@ bool CTransaction::DisconnectInputs(CTxDB& txdb)
 }
 
 
-bool CTransaction::FetchInputs(CTxDB& txdb, teapartycoin map<uint256, CTxIndex>& mapTestPool,
+bool CTransaction::FetchInputs(CTxDB& txdb, const map<uint256, CTxIndex>& mapTestPool,
                                bool fBlock, bool fMiner, MapPrevTx& inputsRet, bool& fInvalid)
 {
     // FetchInputs can return false either because we just haven't seen some inputs
@@ -1114,10 +1114,10 @@ bool CTransaction::FetchInputs(CTxDB& txdb, teapartycoin map<uint256, CTxIndex>&
     // Make sure all prevout.n's are valid:
     for (unsigned int i = 0; i < vin.size(); i++)
     {
-        teapartycoin COutPoint prevout = vin[i].prevout;
+        const COutPoint prevout = vin[i].prevout;
         assert(inputsRet.count(prevout.hash) != 0);
-        teapartycoin CTxIndex& txindex = inputsRet[prevout.hash].first;
-        teapartycoin CTransaction& txPrev = inputsRet[prevout.hash].second;
+        const CTxIndex& txindex = inputsRet[prevout.hash].first;
+        const CTransaction& txPrev = inputsRet[prevout.hash].second;
         if (prevout.n >= txPrev.vout.size() || prevout.n >= txindex.vSpent.size())
         {
             // Revisit this if/when transaction replacement is implemented and allows
@@ -1130,20 +1130,20 @@ bool CTransaction::FetchInputs(CTxDB& txdb, teapartycoin map<uint256, CTxIndex>&
     return true;
 }
 
-teapartycoin CTxOut& CTransaction::GetOutputFor(teapartycoin CTxIn& input, teapartycoin MapPrevTx& inputs) teapartycoin
+const CTxOut& CTransaction::GetOutputFor(const CTxIn& input, const MapPrevTx& inputs) const
 {
-    MapPrevTx::teapartycoin_iterator mi = inputs.find(input.prevout.hash);
+    MapPrevTx::const_iterator mi = inputs.find(input.prevout.hash);
     if (mi == inputs.end())
         throw std::runtime_error("CTransaction::GetOutputFor() : prevout.hash not found");
 
-    teapartycoin CTransaction& txPrev = (mi->second).second;
+    const CTransaction& txPrev = (mi->second).second;
     if (input.prevout.n >= txPrev.vout.size())
         throw std::runtime_error("CTransaction::GetOutputFor() : prevout.n out of range");
 
     return txPrev.vout[input.prevout.n];
 }
 
-int64 CTransaction::GetValueIn(teapartycoin MapPrevTx& inputs) teapartycoin
+int64 CTransaction::GetValueIn(const MapPrevTx& inputs) const
 {
     if (IsCoinBase())
         return 0;
@@ -1157,7 +1157,7 @@ int64 CTransaction::GetValueIn(teapartycoin MapPrevTx& inputs) teapartycoin
 
 }
 
-unsigned int CTransaction::GetP2SHSigOpCount(teapartycoin MapPrevTx& inputs) teapartycoin
+unsigned int CTransaction::GetP2SHSigOpCount(const MapPrevTx& inputs) const
 {
     if (IsCoinBase())
         return 0;
@@ -1165,7 +1165,7 @@ unsigned int CTransaction::GetP2SHSigOpCount(teapartycoin MapPrevTx& inputs) tea
     unsigned int nSigOps = 0;
     for (unsigned int i = 0; i < vin.size(); i++)
     {
-        teapartycoin CTxOut& prevout = GetOutputFor(vin[i], inputs);
+        const CTxOut& prevout = GetOutputFor(vin[i], inputs);
         if (prevout.scriptPubKey.IsPayToScriptHash())
             nSigOps += prevout.scriptPubKey.GetSigOpCount(vin[i].scriptSig);
     }
@@ -1173,8 +1173,8 @@ unsigned int CTransaction::GetP2SHSigOpCount(teapartycoin MapPrevTx& inputs) tea
 }
 
 bool CTransaction::ConnectInputs(MapPrevTx inputs,
-                                 map<uint256, CTxIndex>& mapTestPool, teapartycoin CDiskTxPos& posThisTx,
-                                 teapartycoin CBlockIndex* pindexBlock, bool fBlock, bool fMiner, bool fStrictPayToScriptHash)
+                                 map<uint256, CTxIndex>& mapTestPool, const CDiskTxPos& posThisTx,
+                                 const CBlockIndex* pindexBlock, bool fBlock, bool fMiner, bool fStrictPayToScriptHash)
 {
     // Take over previous transactions' spent pointers
     // fBlock is true when this is called from AcceptBlock when a new best-block is added to the blockchain
@@ -1196,7 +1196,7 @@ bool CTransaction::ConnectInputs(MapPrevTx inputs,
 
             // If prev is coinbase, check that it's matured
             if (txPrev.IsCoinBase())
-                for (teapartycoin CBlockIndex* pindex = pindexBlock; pindex && pindexBlock->nHeight - pindex->nHeight < COINBASE_MATURITY; pindex = pindex->pprev)
+                for (const CBlockIndex* pindex = pindexBlock; pindex && pindexBlock->nHeight - pindex->nHeight < COINBASE_MATURITY; pindex = pindex->pprev)
                     if (pindex->nBlockPos == txindex.pos.nBlockPos && pindex->nFile == txindex.pos.nFile)
                         return error("ConnectInputs() : tried to spend coinbase at depth %d", pindexBlock->nHeight - pindex->nHeight);
 
@@ -1478,7 +1478,7 @@ bool static Reorganize(CTxDB& txdb, CBlockIndex* pindexNew)
             return error("Reorganize() : DisconnectBlock %s failed", pindex->GetBlockHash().ToString().substr(0,20).c_str());
 
         // Queue memory transactions to resurrect
-        BOOST_FOREACH(teapartycoin CTransaction& tx, block.vtx)
+        BOOST_FOREACH(const CTransaction& tx, block.vtx)
             if (!tx.IsCoinBase())
                 vResurrect.push_back(tx);
     }
@@ -1498,7 +1498,7 @@ bool static Reorganize(CTxDB& txdb, CBlockIndex* pindexNew)
         }
 
         // Queue memory transactions to delete
-        BOOST_FOREACH(teapartycoin CTransaction& tx, block.vtx)
+        BOOST_FOREACH(const CTransaction& tx, block.vtx)
             vDelete.push_back(tx);
     }
     if (!txdb.WriteHashBestChain(pindexNew->GetBlockHash()))
@@ -1626,7 +1626,7 @@ bool CBlock::SetBestChain(CTxDB& txdb, CBlockIndex* pindexNew)
     bool fIsInitialDownload = IsInitialBlockDownload();
     if (!fIsInitialDownload)
     {
-        teapartycoin CBlockLocator locator(pindexNew);
+        const CBlockLocator locator(pindexNew);
         ::SetBestChain(locator);
     }
 
@@ -1645,7 +1645,7 @@ bool CBlock::SetBestChain(CTxDB& txdb, CBlockIndex* pindexNew)
     if (!fIsInitialDownload)
     {
         int nUpgraded = 0;
-        teapartycoin CBlockIndex* pindex = pindexBest;
+        const CBlockIndex* pindex = pindexBest;
         for (int i = 0; i < 100 && pindex != NULL; i++)
         {
             if (pindex->nVersion > CBlock::CURRENT_VERSION)
@@ -1678,7 +1678,7 @@ bool CBlock::AddToBlockIndex(unsigned int nFile, unsigned int nBlockPos)
     if (mapBlockIndex.count(hash))
         return error("AddToBlockIndex() : %s already exists", hash.ToString().substr(0,20).c_str());
 
-    // teapartycoinruct new block index object
+    // construct new block index object
     CBlockIndex* pindexNew = new CBlockIndex(nFile, nBlockPos, *this);
     if (!pindexNew)
         return error("AddToBlockIndex() : new CBlockIndex failed");
@@ -1721,7 +1721,7 @@ bool CBlock::AddToBlockIndex(unsigned int nFile, unsigned int nBlockPos)
 
 
 
-bool CBlock::CheckBlock() teapartycoin
+bool CBlock::CheckBlock() const
 {
     // These are checks that are independent of context
     // that can be verified before saving an orphan block.
@@ -1746,14 +1746,14 @@ bool CBlock::CheckBlock() teapartycoin
             return DoS(100, error("CheckBlock() : more than one coinbase"));
 
     // Check transactions
-    BOOST_FOREACH(teapartycoin CTransaction& tx, vtx)
+    BOOST_FOREACH(const CTransaction& tx, vtx)
         if (!tx.CheckTransaction())
             return DoS(tx.nDoS, error("CheckBlock() : CheckTransaction failed"));
 
     // Check for duplicate txids. This is caught by ConnectInputs(),
     // but catching it earlier avoids a potential DoS attack:
     set<uint256> uniqueTx;
-    BOOST_FOREACH(teapartycoin CTransaction& tx, vtx)
+    BOOST_FOREACH(const CTransaction& tx, vtx)
     {
         uniqueTx.insert(tx.GetHash());
     }
@@ -1761,7 +1761,7 @@ bool CBlock::CheckBlock() teapartycoin
         return DoS(100, error("CheckBlock() : duplicate transaction"));
 
     unsigned int nSigOps = 0;
-    BOOST_FOREACH(teapartycoin CTransaction& tx, vtx)
+    BOOST_FOREACH(const CTransaction& tx, vtx)
     {
         nSigOps += tx.GetLegacySigOpCount();
     }
@@ -1798,7 +1798,7 @@ bool CBlock::AcceptBlock()
         return error("AcceptBlock() : block's timestamp is too early");
 
     // Check that all transactions are finalized
-    BOOST_FOREACH(teapartycoin CTransaction& tx, vtx)
+    BOOST_FOREACH(const CTransaction& tx, vtx)
         if (!tx.IsFinal(nHeight, GetBlockTime()))
             return DoS(10, error("AcceptBlock() : contains a non-final transaction"));
 
@@ -1932,7 +1932,7 @@ bool CheckDiskSpace(uint64 nAdditionalBytes)
     return true;
 }
 
-FILE* OpenBlockFile(unsigned int nFile, unsigned int nBlockPos, teapartycoin char* pszMode)
+FILE* OpenBlockFile(unsigned int nFile, unsigned int nBlockPos, const char* pszMode)
 {
     if ((nFile < 1) || (nFile == (unsigned int) -1))
         return NULL;
@@ -1981,7 +1981,7 @@ bool LoadBlockIndex(bool fAllowNew)
         pchMessageStart[1] = 0xc0;
         pchMessageStart[2] = 0xb8;
         pchMessageStart[3] = 0xdb;
-        hashGenesisBlock = uint256("0x5813d4cfab0eeda94a15d11c5e7d6895e667fbbe67c59ef9a1b3bc232c9a0b7f");
+        hashGenesisBlock = uint256("0x61e9efa9b006cecd84730af4f5b9026fe78aaf306df3399acef992079f19d70a");
     }
 
     //
@@ -2002,11 +2002,11 @@ bool LoadBlockIndex(bool fAllowNew)
     
         
         // Genesis block
-        teapartycoin char* pszTimestamp = "Molon Labe";
+        const char* pszTimestamp = "Molon Labe";
         CTransaction txNew;
         txNew.vin.resize(1);
         txNew.vout.resize(1);
-        txNew.vin[0].scriptSig = CScript() << 486604799 << CBigNum(4) << vector<unsigned char>((teapartycoin unsigned char*)pszTimestamp, (teapartycoin unsigned char*)pszTimestamp + strlen(pszTimestamp));
+        txNew.vin[0].scriptSig = CScript() << 486604799 << CBigNum(4) << vector<unsigned char>((const unsigned char*)pszTimestamp, (const unsigned char*)pszTimestamp + strlen(pszTimestamp));
         txNew.vout[0].nValue = 0;
         txNew.vout[0].scriptPubKey = CScript() << 0x0 << OP_CHECKSIG; // a privkey for that 'vanity' pubkey would be interesting ;)
         CBlock block;
@@ -2014,21 +2014,21 @@ bool LoadBlockIndex(bool fAllowNew)
         block.hashPrevBlock = 0;
         block.hashMerkleRoot = block.BuildMerkleTree();
         block.nVersion = 1;
-        block.nTime    = 1391668651; //epochtime
+        block.nTime    = 1391848054; //epochtime
         block.nBits    = 0x1e0ffff0;
-        block.nNonce   = 1345972;
+        block.nNonce   = 2725866;
 
         if (fTestNet)
         {
-            block.nTime    = 1391668651;
-            block.nNonce   = 440824;
+            block.nTime    = 1391672490;
+            block.nNonce   = 2074431;
         }
 
         //// debug print
         printf("%s\n", block.GetHash().ToString().c_str());
         printf("%s\n", hashGenesisBlock.ToString().c_str());
         printf("%s\n", block.hashMerkleRoot.ToString().c_str());
-        assert(block.hashMerkleRoot == uint256("0x2fc1b7ef46270c053711fbae934cf7f83378efd4b3e158079451d9c6c90e4700"));
+        assert(block.hashMerkleRoot == uint256("0xe353b6a2efbe5c2add18d0fc3de4bc86911b473376c485ed34c89b1f0c9bf68d"));
 
         // If genesis block hash does not match, then generate new genesis hash.
         if (false && block.GetHash() != hashGenesisBlock)
@@ -2249,9 +2249,9 @@ string GetWarnings(string strFor)
     // Alerts
     {
         LOCK(cs_mapAlerts);
-        BOOST_FOREACH(PAIRTYPE(teapartycoin uint256, CAlert)& item, mapAlerts)
+        BOOST_FOREACH(PAIRTYPE(const uint256, CAlert)& item, mapAlerts)
         {
-            teapartycoin CAlert& alert = item.second;
+            const CAlert& alert = item.second;
             if (alert.AppliesToMe() && alert.nPriority > nPriority)
             {
                 nPriority = alert.nPriority;
@@ -2268,7 +2268,7 @@ string GetWarnings(string strFor)
     return "error";
 }
 
-CAlert CAlert::getAlertByHash(teapartycoin uint256 &hash)
+CAlert CAlert::getAlertByHash(const uint256 &hash)
 {
     CAlert retval;
     {
@@ -2292,7 +2292,7 @@ bool CAlert::ProcessAlert()
         // Cancel previous alerts
         for (map<uint256, CAlert>::iterator mi = mapAlerts.begin(); mi != mapAlerts.end();)
         {
-            teapartycoin CAlert& alert = (*mi).second;
+            const CAlert& alert = (*mi).second;
             if (Cancels(alert))
             {
                 printf("cancelling alert %d\n", alert.nID);
@@ -2310,9 +2310,9 @@ bool CAlert::ProcessAlert()
         }
 
         // Check if this alert has been cancelled
-        BOOST_FOREACH(PAIRTYPE(teapartycoin uint256, CAlert)& item, mapAlerts)
+        BOOST_FOREACH(PAIRTYPE(const uint256, CAlert)& item, mapAlerts)
         {
-            teapartycoin CAlert& alert = item.second;
+            const CAlert& alert = item.second;
             if (alert.Cancels(*this))
             {
                 printf("alert already cancelled by %d\n", alert.nID);
@@ -2344,7 +2344,7 @@ bool CAlert::ProcessAlert()
 //
 
 
-bool static AlreadyHave(CTxDB& txdb, teapartycoin CInv& inv)
+bool static AlreadyHave(CTxDB& txdb, const CInv& inv)
 {
     switch (inv.type)
     {
@@ -2490,7 +2490,7 @@ bool static ProcessMessage(CNode* pfrom, string strCommand, CDataStream& vRecv)
         // Relay alerts
         {
             LOCK(cs_mapAlerts);
-            BOOST_FOREACH(PAIRTYPE(teapartycoin uint256, CAlert)& item, mapAlerts)
+            BOOST_FOREACH(PAIRTYPE(const uint256, CAlert)& item, mapAlerts)
                 item.second.RelayTo(pfrom);
         }
 
@@ -2604,7 +2604,7 @@ bool static ProcessMessage(CNode* pfrom, string strCommand, CDataStream& vRecv)
         CTxDB txdb("r");
         for (unsigned int nInv = 0; nInv < vInv.size(); nInv++)
         {
-            teapartycoin CInv &inv = vInv[nInv];
+            const CInv &inv = vInv[nInv];
 
             if (fShutdown)
                 return true;
@@ -2647,7 +2647,7 @@ bool static ProcessMessage(CNode* pfrom, string strCommand, CDataStream& vRecv)
         if (fDebugNet || (vInv.size() != 1))
             printf("received getdata (%d invsz)\n", vInv.size());
 
-        BOOST_FOREACH(teapartycoin CInv& inv, vInv)
+        BOOST_FOREACH(const CInv& inv, vInv)
         {
             if (fShutdown)
                 return true;
@@ -2793,7 +2793,7 @@ bool static ProcessMessage(CNode* pfrom, string strCommand, CDataStream& vRecv)
                      mi != mapOrphanTransactionsByPrev[hashPrev].end();
                      ++mi)
                 {
-                    teapartycoin CDataStream& vMsg = *((*mi).second);
+                    const CDataStream& vMsg = *((*mi).second);
                     CTransaction tx;
                     CDataStream(vMsg) >> tx;
                     CInv inv(MSG_TX, tx.GetHash());
@@ -2854,7 +2854,7 @@ bool static ProcessMessage(CNode* pfrom, string strCommand, CDataStream& vRecv)
     {
         pfrom->vAddrToSend.clear();
         vector<CAddress> vAddr = addrman.GetAddr();
-        BOOST_FOREACH(teapartycoin CAddress &addr, vAddr)
+        BOOST_FOREACH(const CAddress &addr, vAddr)
             pfrom->PushAddress(addr);
     }
 
@@ -3135,7 +3135,7 @@ bool SendMessages(CNode* pto, bool fSendTrickle)
         {
             vector<CAddress> vAddr;
             vAddr.reserve(pto->vAddrToSend.size());
-            BOOST_FOREACH(teapartycoin CAddress& addr, pto->vAddrToSend)
+            BOOST_FOREACH(const CAddress& addr, pto->vAddrToSend)
             {
                 // returns true if wasn't already contained in the set
                 if (pto->setAddrKnown.insert(addr).second)
@@ -3164,7 +3164,7 @@ bool SendMessages(CNode* pto, bool fSendTrickle)
             LOCK(pto->cs_inventory);
             vInv.reserve(pto->vInventoryToSend.size());
             vInvWait.reserve(pto->vInventoryToSend.size());
-            BOOST_FOREACH(teapartycoin CInv& inv, pto->vInventoryToSend)
+            BOOST_FOREACH(const CInv& inv, pto->vInventoryToSend)
             {
                 if (pto->setInventoryKnown.count(inv))
                     continue;
@@ -3221,7 +3221,7 @@ bool SendMessages(CNode* pto, bool fSendTrickle)
         CTxDB txdb("r");
         while (!pto->mapAskFor.empty() && (*pto->mapAskFor.begin()).first <= nNow)
         {
-            teapartycoin CInv& inv = (*pto->mapAskFor.begin()).second;
+            const CInv& inv = (*pto->mapAskFor.begin()).second;
             if (!AlreadyHave(txdb, inv))
             {
                 if (fDebugNet)
@@ -3276,10 +3276,10 @@ int static FormatHashBlocks(void* pbuffer, unsigned int len)
     return blocks;
 }
 
-static teapartycoin unsigned int pSHA256InitState[8] =
+static const unsigned int pSHA256InitState[8] =
 {0x6a09e667, 0xbb67ae85, 0x3c6ef372, 0xa54ff53a, 0x510e527f, 0x9b05688c, 0x1f83d9ab, 0x5be0cd19};
 
-void SHA256Transform(void* pstate, void* pinput, teapartycoin void* pinit)
+void SHA256Transform(void* pstate, void* pinput, const void* pinit)
 {
     SHA256_CTX ctx;
     unsigned char data[64];
@@ -3344,7 +3344,7 @@ public:
         dPriority = 0;
     }
 
-    void print() teapartycoin
+    void print() const
     {
         printf("COrphan(hash=%s, dPriority=%.1f)\n", ptx->GetHash().ToString().substr(0,10).c_str(), dPriority);
         BOOST_FOREACH(uint256 hash, setDependsOn)
@@ -3393,7 +3393,7 @@ CBlock* CreateNewBlock(CReserveKey& reservekey)
 
             COrphan* porphan = NULL;
             double dPriority = 0;
-            BOOST_FOREACH(teapartycoin CTxIn& txin, tx.vin)
+            BOOST_FOREACH(const CTxIn& txin, tx.vin)
             {
                 // Read prev transaction
                 CTransaction txPrev;
@@ -3583,7 +3583,7 @@ void FormatHashBuffers(CBlock* pblock, char* pmidstate, char* pdata, char* phash
     for (unsigned int i = 0; i < sizeof(tmp)/4; i++)
         ((unsigned int*)&tmp)[i] = ByteReverse(((unsigned int*)&tmp)[i]);
 
-    // Precalc the first half of the first hash, which stays teapartycoinant
+    // Precalc the first half of the first hash, which stays constant
     SHA256Transform(pmidstate, &tmp.block, pSHA256InitState);
 
     memcpy(pdata, &tmp.block, 128);

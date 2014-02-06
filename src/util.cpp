@@ -17,7 +17,7 @@
 //           http://clang.debian.net/status.php?version=3.0&key=CANNOT_FIND_FUNCTION
 namespace boost {
     namespace program_options {
-        std::string to_internal(teapartycoin std::string&);
+        std::string to_internal(const std::string&);
     }
 }
 
@@ -78,7 +78,7 @@ bool fReopenDebugLog = false;
 
 // Init openssl library multithreading support
 static CCriticalSection** ppmutexOpenSSL;
-void locking_callback(int mode, int i, teapartycoin char* file, int line)
+void locking_callback(int mode, int i, const char* file, int line)
 {
     if (mode & CRYPTO_LOCK) {
         ENTER_CRITICAL_SECTION(*ppmutexOpenSSL[i]);
@@ -194,7 +194,7 @@ uint256 GetRandHash()
 
 
 
-inline int OutputDebugStringF(teapartycoin char* pszFormat, ...)
+inline int OutputDebugStringF(const char* pszFormat, ...)
 {
     int ret = 0;
     if (fPrintToConsole)
@@ -273,7 +273,7 @@ inline int OutputDebugStringF(teapartycoin char* pszFormat, ...)
     return ret;
 }
 
-string vstrprintf(teapartycoin std::string &format, va_list ap)
+string vstrprintf(const std::string &format, va_list ap)
 {
     char buffer[50000];
     char* p = buffer;
@@ -300,7 +300,7 @@ string vstrprintf(teapartycoin std::string &format, va_list ap)
     return str;
 }
 
-string real_strprintf(teapartycoin std::string &format, int dummy, ...)
+string real_strprintf(const std::string &format, int dummy, ...)
 {
     va_list arg_ptr;
     va_start(arg_ptr, dummy);
@@ -309,7 +309,7 @@ string real_strprintf(teapartycoin std::string &format, int dummy, ...)
     return str;
 }
 
-bool error(teapartycoin char *format, ...)
+bool error(const char *format, ...)
 {
     va_list arg_ptr;
     va_start(arg_ptr, format);
@@ -320,7 +320,7 @@ bool error(teapartycoin char *format, ...)
 }
 
 
-void ParseString(teapartycoin string& str, char c, vector<string>& v)
+void ParseString(const string& str, char c, vector<string>& v)
 {
     if (str.empty())
         return;
@@ -364,16 +364,16 @@ string FormatMoney(int64 n, bool fPlus)
 }
 
 
-bool ParseMoney(teapartycoin string& str, int64& nRet)
+bool ParseMoney(const string& str, int64& nRet)
 {
     return ParseMoney(str.c_str(), nRet);
 }
 
-bool ParseMoney(teapartycoin char* pszIn, int64& nRet)
+bool ParseMoney(const char* pszIn, int64& nRet)
 {
     string strWhole;
     int64 nUnits = 0;
-    teapartycoin char* p = pszIn;
+    const char* p = pszIn;
     while (isspace(*p))
         p++;
     for (; *p; p++)
@@ -428,7 +428,7 @@ static signed char phexdigit[256] =
   -1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,
   -1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1, };
 
-bool IsHex(teapartycoin string& str)
+bool IsHex(const string& str)
 {
     BOOST_FOREACH(unsigned char c, str)
     {
@@ -438,7 +438,7 @@ bool IsHex(teapartycoin string& str)
     return (str.size() > 0) && (str.size()%2 == 0);
 }
 
-vector<unsigned char> ParseHex(teapartycoin char* psz)
+vector<unsigned char> ParseHex(const char* psz)
 {
     // convert hex dump to vector
     vector<unsigned char> vch;
@@ -459,7 +459,7 @@ vector<unsigned char> ParseHex(teapartycoin char* psz)
     return vch;
 }
 
-vector<unsigned char> ParseHex(teapartycoin string& str)
+vector<unsigned char> ParseHex(const string& str)
 {
     return ParseHex(str.c_str());
 }
@@ -479,7 +479,7 @@ static void InterpretNegativeSetting(string name, map<string, string>& mapSettin
     }
 }
 
-void ParseParameters(int argc, teapartycoin char* teapartycoin argv[])
+void ParseParameters(int argc, const char* const argv[])
 {
     mapArgs.clear();
     mapMultiArgs.clear();
@@ -506,7 +506,7 @@ void ParseParameters(int argc, teapartycoin char* teapartycoin argv[])
     }
 
     // New 0.6 features:
-    BOOST_FOREACH(teapartycoin PAIRTYPE(string,string)& entry, mapArgs)
+    BOOST_FOREACH(const PAIRTYPE(string,string)& entry, mapArgs)
     {
         string name = entry.first;
 
@@ -524,21 +524,21 @@ void ParseParameters(int argc, teapartycoin char* teapartycoin argv[])
     }
 }
 
-std::string GetArg(teapartycoin std::string& strArg, teapartycoin std::string& strDefault)
+std::string GetArg(const std::string& strArg, const std::string& strDefault)
 {
     if (mapArgs.count(strArg))
         return mapArgs[strArg];
     return strDefault;
 }
 
-int64 GetArg(teapartycoin std::string& strArg, int64 nDefault)
+int64 GetArg(const std::string& strArg, int64 nDefault)
 {
     if (mapArgs.count(strArg))
         return atoi64(mapArgs[strArg]);
     return nDefault;
 }
 
-bool GetBoolArg(teapartycoin std::string& strArg, bool fDefault)
+bool GetBoolArg(const std::string& strArg, bool fDefault)
 {
     if (mapArgs.count(strArg))
     {
@@ -549,7 +549,7 @@ bool GetBoolArg(teapartycoin std::string& strArg, bool fDefault)
     return fDefault;
 }
 
-bool SoftSetArg(teapartycoin std::string& strArg, teapartycoin std::string& strValue)
+bool SoftSetArg(const std::string& strArg, const std::string& strValue)
 {
     if (mapArgs.count(strArg))
         return false;
@@ -557,7 +557,7 @@ bool SoftSetArg(teapartycoin std::string& strArg, teapartycoin std::string& strV
     return true;
 }
 
-bool SoftSetBoolArg(teapartycoin std::string& strArg, bool fValue)
+bool SoftSetBoolArg(const std::string& strArg, bool fValue)
 {
     if (fValue)
         return SoftSetArg(strArg, std::string("1"));
@@ -566,15 +566,15 @@ bool SoftSetBoolArg(teapartycoin std::string& strArg, bool fValue)
 }
 
 
-string EncodeBase64(teapartycoin unsigned char* pch, size_t len)
+string EncodeBase64(const unsigned char* pch, size_t len)
 {
-    static teapartycoin char *pbase64 = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789+/";
+    static const char *pbase64 = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789+/";
 
     string strRet="";
     strRet.reserve((len+2)/3*4);
 
     int mode=0, left=0;
-    teapartycoin unsigned char *pchEnd = pch+len;
+    const unsigned char *pchEnd = pch+len;
 
     while (pch<pchEnd)
     {
@@ -612,14 +612,14 @@ string EncodeBase64(teapartycoin unsigned char* pch, size_t len)
     return strRet;
 }
 
-string EncodeBase64(teapartycoin string& str)
+string EncodeBase64(const string& str)
 {
-    return EncodeBase64((teapartycoin unsigned char*)str.c_str(), str.size());
+    return EncodeBase64((const unsigned char*)str.c_str(), str.size());
 }
 
-vector<unsigned char> DecodeBase64(teapartycoin char* p, bool* pfInvalid)
+vector<unsigned char> DecodeBase64(const char* p, bool* pfInvalid)
 {
-    static teapartycoin int decode64_table[256] =
+    static const int decode64_table[256] =
     {
         -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1,
         -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1,
@@ -700,21 +700,21 @@ vector<unsigned char> DecodeBase64(teapartycoin char* p, bool* pfInvalid)
     return vchRet;
 }
 
-string DecodeBase64(teapartycoin string& str)
+string DecodeBase64(const string& str)
 {
     vector<unsigned char> vchRet = DecodeBase64(str.c_str());
-    return string((teapartycoin char*)&vchRet[0], vchRet.size());
+    return string((const char*)&vchRet[0], vchRet.size());
 }
 
-string EncodeBase32(teapartycoin unsigned char* pch, size_t len)
+string EncodeBase32(const unsigned char* pch, size_t len)
 {
-    static teapartycoin char *pbase32 = "abcdefghijklmnopqrstuvwxyz234567";
+    static const char *pbase32 = "abcdefghijklmnopqrstuvwxyz234567";
 
     string strRet="";
     strRet.reserve((len+4)/5*8);
 
     int mode=0, left=0;
-    teapartycoin unsigned char *pchEnd = pch+len;
+    const unsigned char *pchEnd = pch+len;
 
     while (pch<pchEnd)
     {
@@ -754,7 +754,7 @@ string EncodeBase32(teapartycoin unsigned char* pch, size_t len)
         }
     }
 
-    static teapartycoin int nPadding[5] = {0, 6, 4, 3, 1};
+    static const int nPadding[5] = {0, 6, 4, 3, 1};
     if (mode)
     {
         strRet += pbase32[left];
@@ -765,14 +765,14 @@ string EncodeBase32(teapartycoin unsigned char* pch, size_t len)
     return strRet;
 }
 
-string EncodeBase32(teapartycoin string& str)
+string EncodeBase32(const string& str)
 {
-    return EncodeBase32((teapartycoin unsigned char*)str.c_str(), str.size());
+    return EncodeBase32((const unsigned char*)str.c_str(), str.size());
 }
 
-vector<unsigned char> DecodeBase32(teapartycoin char* p, bool* pfInvalid)
+vector<unsigned char> DecodeBase32(const char* p, bool* pfInvalid)
 {
-    static teapartycoin int decode32_table[256] =
+    static const int decode32_table[256] =
     {
         -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1,
         -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1,
@@ -887,14 +887,14 @@ vector<unsigned char> DecodeBase32(teapartycoin char* p, bool* pfInvalid)
     return vchRet;
 }
 
-string DecodeBase32(teapartycoin string& str)
+string DecodeBase32(const string& str)
 {
     vector<unsigned char> vchRet = DecodeBase32(str.c_str());
-    return string((teapartycoin char*)&vchRet[0], vchRet.size());
+    return string((const char*)&vchRet[0], vchRet.size());
 }
 
 
-bool WildcardMatch(teapartycoin char* psz, teapartycoin char* mask)
+bool WildcardMatch(const char* psz, const char* mask)
 {
     loop
     {
@@ -918,7 +918,7 @@ bool WildcardMatch(teapartycoin char* psz, teapartycoin char* mask)
     }
 }
 
-bool WildcardMatch(teapartycoin string& str, teapartycoin string& mask)
+bool WildcardMatch(const string& str, const string& mask)
 {
     return WildcardMatch(str.c_str(), mask.c_str());
 }
@@ -930,13 +930,13 @@ bool WildcardMatch(teapartycoin string& str, teapartycoin string& mask)
 
 
 
-static std::string FormatException(std::exception* pex, teapartycoin char* pszThread)
+static std::string FormatException(std::exception* pex, const char* pszThread)
 {
 #ifdef WIN32
     char pszModule[MAX_PATH] = "";
     GetModuleFileNameA(NULL, pszModule, sizeof(pszModule));
 #else
-    teapartycoin char* pszModule = "teapartycoin";
+    const char* pszModule = "teapartycoin";
 #endif
     if (pex)
         return strprintf(
@@ -946,13 +946,13 @@ static std::string FormatException(std::exception* pex, teapartycoin char* pszTh
             "UNKNOWN EXCEPTION       \n%s in %s       \n", pszModule, pszThread);
 }
 
-void LogException(std::exception* pex, teapartycoin char* pszThread)
+void LogException(std::exception* pex, const char* pszThread)
 {
     std::string message = FormatException(pex, pszThread);
     printf("\n%s", message.c_str());
 }
 
-void PrintException(std::exception* pex, teapartycoin char* pszThread)
+void PrintException(std::exception* pex, const char* pszThread)
 {
     std::string message = FormatException(pex, pszThread);
     printf("\n\n************************\n%s\n", message.c_str());
@@ -961,7 +961,7 @@ void PrintException(std::exception* pex, teapartycoin char* pszThread)
     throw;
 }
 
-void PrintExceptionContinue(std::exception* pex, teapartycoin char* pszThread)
+void PrintExceptionContinue(std::exception* pex, const char* pszThread)
 {
     std::string message = FormatException(pex, pszThread);
     printf("\n\n************************\n%s\n", message.c_str());
@@ -998,7 +998,7 @@ boost::filesystem::path GetDefaultDataDir()
 #endif
 }
 
-teapartycoin boost::filesystem::path &GetDataDir(bool fNetSpecific)
+const boost::filesystem::path &GetDataDir(bool fNetSpecific)
 {
     namespace fs = boost::filesystem;
 
@@ -1071,7 +1071,7 @@ boost::filesystem::path GetPidFile()
     return pathPidFile;
 }
 
-void CreatePidFile(teapartycoin boost::filesystem::path &path, pid_t pid)
+void CreatePidFile(const boost::filesystem::path &path, pid_t pid)
 {
     FILE* file = fopen(path.string().c_str(), "w");
     if (file)
@@ -1169,7 +1169,7 @@ int64 GetAdjustedTime()
     return GetTime() + nTimeOffset;
 }
 
-void AddTimeData(teapartycoin CNetAddr& ip, int64 nTime)
+void AddTimeData(const CNetAddr& ip, int64 nTime)
 {
     int64 nOffsetSample = nTime - GetTime();
 
@@ -1243,7 +1243,7 @@ string FormatFullVersion()
 }
 
 // Format the subversion field according to BIP 14 spec (https://en.bitcoin.it/wiki/BIP_0014)
-std::string FormatSubVersion(teapartycoin std::string& name, int nClientVersion, teapartycoin std::vector<std::string>& comments)
+std::string FormatSubVersion(const std::string& name, int nClientVersion, const std::vector<std::string>& comments)
 {
     std::ostringstream ss;
     ss << "/";
@@ -1278,7 +1278,7 @@ void runCommand(std::string strCommand)
         printf("runCommand error: system(%s) returned %d\n", strCommand.c_str(), nErr);
 }
 
-void RenameThread(teapartycoin char* name)
+void RenameThread(const char* name)
 {
 #if defined(PR_SET_NAME)
     // Only the first 15 characters are used (16 - NUL terminator)
